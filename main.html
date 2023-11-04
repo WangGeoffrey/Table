@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title> Table </title>
+    <meta charset="utf-8">
+    <style>
+        .block {
+            display: inline-block;
+            vertical-align: top;
+        }
+        /* query list */
+        #query input {
+            width: 60px;
+        }
+        #queries div {
+            padding: 1px;
+            margin: 1px;
+        }
+        .query-elem {
+            display: inline-block;
+            border: 1px solid grey;
+            min-width: 200px;
+        }
+        .query-elem:hover {
+            border: 1px solid blue;
+        }
+        input:checked + .query-elem {
+            background-color: aqua;
+        }
+        /* HTML table */
+        #view th, #view td {
+            min-width: 40px;
+            max-width: 200px;
+            border: 1px solid;
+        }
+        #view table {
+            border-collapse: collapse;
+            margin: 5px;
+        }
+    </style>
+    <script src="table.js"></script>
+</head>
+<body>
+    <div>
+        <label for="table">Table</label>
+        <table id="table">
+            <tbody>
+                <tr id="header-row"><th rowspan="2">
+                    <input id="new-field" type="text" style="margin-left: 20px; display: block;" placeholder="New Field" onkeydown="addField(this)"/>
+                    <input id="new-default" type="text" style="margin-left: 20px; display: block;" placeholder="Default Value" onkeydown="addField(this)"/>
+                </th></tr>
+                <tr id="input-row"></tr>
+            </tbody>
+        </table>
+    </div>
+    <hr>
+    <div>
+        <div class="block">
+            <label for="query">Query</label>
+            <div id="query">
+                <div style="padding: 5px;">
+                    <input type="text" placeholder="Field" onkeydown="addQuery(this)"/>
+                    <input type="text" placeholder="Operation" onkeydown="addQuery(this)"/>
+                    <input type="text" placeholder="Value" onkeydown="addQuery(this)"/>
+                </div>
+                <div id="queries"></div>
+            </div>
+            <button onclick="displayTable()" style="margin: 5px;">View Table</button>
+        </div>
+        <div id="view" class="block"></div>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>
