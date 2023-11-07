@@ -3,41 +3,7 @@
 <head>
     <title> Table </title>
     <meta charset="utf-8">
-    <style>
-        .block {
-            display: inline-block;
-            vertical-align: top;
-        }
-        /* query list */
-        #query input {
-            width: 60px;
-        }
-        #queries div {
-            padding: 1px;
-            margin: 1px;
-        }
-        .query-elem {
-            display: inline-block;
-            border: 1px solid grey;
-            min-width: 200px;
-        }
-        .query-elem:hover {
-            border: 1px solid blue;
-        }
-        input:checked + .query-elem {
-            background-color: aqua;
-        }
-        /* HTML table */
-        #view th, #view td {
-            min-width: 40px;
-            max-width: 200px;
-            border: 1px solid;
-        }
-        #view table {
-            border-collapse: collapse;
-            margin: 5px;
-        }
-    </style>
+    <link rel="stylesheet" type="text/css" href="main.css" title="style"/>
     <script src="table.js"></script>
 </head>
 <body>
@@ -45,9 +11,9 @@
         <label for="table">Table</label>
         <table id="table">
             <tbody>
-                <tr id="header-row"><th rowspan="2">
-                    <input id="new-field" type="text" style="margin-left: 20px; display: block;" placeholder="New Field" onkeydown="addField(this)"/>
-                    <input id="new-default" type="text" style="margin-left: 20px; display: block;" placeholder="Default Value" onkeydown="addField(this)"/>
+                <tr id="header-row"><th style="min-width: 18px;"></th><th rowspan="2">
+                    <input id="new-field" class="block" type="text" placeholder="New Field" onkeydown="addField(this)"/>
+                    <input id="new-default" class="block" type="text" placeholder="Default Value" onkeydown="addField(this)"/>
                 </th></tr>
                 <tr id="input-row"></tr>
             </tbody>
@@ -55,19 +21,17 @@
     </div>
     <hr>
     <div>
-        <div class="block">
+        <div class="pad-elements inline">
             <label for="query">Query</label>
             <div id="query">
-                <div style="padding: 5px;">
-                    <input type="text" placeholder="Field" onkeydown="addQuery(this)"/>
-                    <input type="text" placeholder="Operation" onkeydown="addQuery(this)"/>
-                    <input type="text" placeholder="Value" onkeydown="addQuery(this)"/>
-                </div>
-                <div id="queries"></div>
+                <input type="text" placeholder="Field" onkeydown="addQuery(this)"/>
+                <input type="text" placeholder="Operation" onkeydown="addQuery(this)"/>
+                <input type="text" placeholder="Value" onkeydown="addQuery(this)"/>
             </div>
-            <button onclick="displayTable()" style="margin: 5px;">View Table</button>
+            <div id="queries"></div>
+            <button onclick="displayTable()">View Table</button>
         </div>
-        <div id="view" class="block"></div>
+        <div id="view" class="inline"></div>
     </div>
     <script src="main.js"></script>
 </body>
