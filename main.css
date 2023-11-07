@@ -1,0 +1,73 @@
+.block {
+    display: block;
+}
+.inline {
+    display: inline-block;
+    vertical-align: top;
+}
+.pad-elements > * {
+    margin: 5px;
+}
+.unselectable {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+#table th.unselectable:hover {
+    background-color: #ccc;
+}
+/* query list */
+#query input {
+    width: 60px;
+}
+#queries div {
+    margin: 1px;
+}
+.query-elem {
+    display: inline-block;
+    border: 1px solid #aaa;
+    border-radius: 5px;
+    padding: 2px;
+    padding-left: 10px;
+    padding-right: 10px;
+    min-width: 200px;
+}
+.query-elem:hover {
+    border: 1px solid #00F;
+}
+input:checked + .query-elem {
+    background-color: #ccc;
+}
+/* html table */
+#view table {
+    border-collapse: collapse;
+    margin: 5px;
+}
+#view th, #view td {
+    border: 1px solid;
+    min-width: 40px;
+    max-width: 200px;
+}
+/* style elements as cross mark */
+.cross-mark b {
+    display: inline-block;
+    border: solid #aaa;
+    border-width: 0 3px 3px 0;
+    padding: 3px;
+}
+.cross-mark b:first-child {
+    transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
+}
+.cross-mark b:last-child {
+    transform: rotate(135deg);
+    -webkit-transform: rotate(135deg);
+}
+.cross-mark:hover b {
+    border: solid #F00;
+    border-width: 0 3px 3px 0;
+}
