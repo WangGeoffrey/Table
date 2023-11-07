@@ -5,6 +5,7 @@ const newDefault = document.getElementById("new-default"); // <input> element fo
 const headerRow = document.getElementById("header-row"); // <hr> element for table fields
 const inputRow = document.getElementById("input-row"); // <hr> element with <input> elements for new record
 const queries = document.getElementById("queries"); // <div> element containing added queries
+const view = document.getElementById("view"); // <div> element to display html table
 
 function addField() {
     if (event.key !== 'Enter') return; // check when enter key pressed
@@ -14,12 +15,10 @@ function addField() {
     // create <th> element with field
     const header = document.createElement("th");
     header.append(document.createTextNode(newField.value));
-    header.classList.add("col-"+newField.value);
+    header.classList.add("col-"+newField.value, "unselectable");
     header.setAttribute("title", "remove field");
-    header.setAttribute("onmouseover", "this.style.backgroundColor = \"#ccc\"");
-    header.setAttribute("onmouseout", "this.style.backgroundColor = \"white\"");
     header.setAttribute("onclick", "removeField(this)");
-    headerRow.insertBefore(header, headerRow.children[headerRow.children.length-1]);
+    headerRow.insertBefore(header, headerRow.children[headerRow.children.length-2]);
     // create <input> element for field
     const inputField = document.createElement("input");
     inputField.classList.add("new-record");
@@ -47,7 +46,7 @@ function removeField(elem) {
     if (newTable.remove(elem.innerHTML)) return; // return if field not in table
     for (const data of Array.from(document.getElementsByClassName("col-"+elem.innerHTML))) data.remove(); // remove column
     if (!newTable.fields.length) for (const row of Array.from(document.getElementsByClassName("record-row"))) row.remove(); // remove <tr> elements if no table data
-    Array.from(queries.children).forEach( value => { if (Array.from(value.children)[1].innerHTML.startsWith(elem.innerHTML)) value.remove() }); // remove queries for removed field
+    Array.from(queries.children).forEach( value => { if (value.querySelector(".query-elem").innerHTML.startsWith(elem.innerHTML)) value.remove() });
 }
 
 function insertRecord() {
@@ -68,18 +67,18 @@ function insertRecord() {
     }
     // create <td> element to delete row
     const del = document.createElement("td");
-    del.append(document.createTextNode("delete row"));
     del.setAttribute("onmouseover", "this.parentElement.style.backgroundColor = \"#ccc\"");
-    del.setAttribute("onmouseout", "this.parentElement.style.backgroundColor = \"white\"");
+    del.setAttribute("onmouseout", "this.parentElement.style.backgroundColor = \"#FFF\"");
     del.setAttribute("onclick", "deleteRecord(this)");
+    del.append(crossMark());
     record.appendChild(del);
     tableElem.children[0].appendChild(record);
 }
 
 function deleteRecord(elem) {
     const row = elem.parentElement; // get <tr> element in table
-    const elems = Array.from(Array.from(tableElem.children)[0].children); // get list of <tr> elements of table
-    newTable.delete(elems.indexOf(row)-2); // -2 for <tbody> containing header and input row
+    const elems = Array.from(tableElem.querySelectorAll(".record-row")); // get list of <tr> elements of table
+    newTable.delete(elems.indexOf(row));
     row.remove();
 }
 
@@ -98,17 +97,42 @@ function addQuery (elem) {
     check.style.display = "none";
     // create <div> element to list query
     const queryElem = document.createElement("div");
-    queryElem.classList.add("query-elem");
+    queryElem.classList.add("query-elem", "unselectable");
     queryElem.innerHTML = query.join(" ");
     // create <label> element to toggle <input> on click
     const button = document.createElement("label");
-    button.style.display = "block";
+    button.style.display = "inline-block";
     button.appendChild(check);
-    button.appendChild(queryElem)
-    button.setAttribute("onclick", "newTable.activeQuery[Array.from(this.parentElement.children).indexOf(this)] = this.children[0].checked;");
-    queries.appendChild(button);
+    button.appendChild(queryElem);
+    button.setAttribute("onclick", "toggleQuery(this)");
+    // create <div> element to delete query
+    const del = crossMark();
+    del.style.display = "inline-block";
+    del.setAttribute("onclick", "removeQuery(this);")
+    // create <div> element containing new query
+    const container = document.createElement("div");
+    container.appendChild(button);
+    container.appendChild(del);
+    queries.appendChild(container);
+}
+
+function crossMark() {
+    const cross = document.createElement("div");
+    cross.classList.add("cross-mark");
+    cross.appendChild(document.createElement("b"));
+    cross.appendChild(document.createElement("b"));
+    return cross
+}
+
+function toggleQuery(elem) {
+    newTable.queries[elem.children[1].textContent].active = elem.children[0].checked;
+}
+
+function removeQuery(elem) {
+    newTable.remQuery(elem.parentElement.querySelector(".query-elem").innerHTML);
+    elem.parentElement.remove();
 }
 
 function displayTable() {
-    document.getElementById("view").innerHTML = newTable.htmlTable();
+    view.innerHTML = newTable.htmlTable();
 }
