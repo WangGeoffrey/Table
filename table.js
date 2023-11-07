@@ -51,54 +51,60 @@ class table {
 class queryTable extends table { // implement queries for table
     constructor() {
         super()
-        this.clearQuery();
+        this.queries = {};
     }
     remove(remField) {
         if (super.remove(remField)) return "field not in table";
-        this.queries.reduceRight( (_, value, index) => {
-            if (value[0] == remField) {
-                delete this.queryMask[value.join(" ")];
-                this.activeQuery.splice(index, 1);
-                this.queries.splice(index, 1);
-            }
-        }, 0);
+        for (const [key, value] of Object.entries(this.queries)) if (remField == value.query[0]) this.remQuery(key);
     }
     insert() {
         if (super.insert(...arguments)) return "blank record";
-        const args = arguments[0].map( (value, index) => value ? value : this.defaultValues[index]);
-        for (const query of this.queries) {
-            const operand = query[2] && !isNaN(query[2]) ? Number(query[2]) : "\"" + query[2] + "\"";
-            if (eval("\"" + args[this.fields.indexOf(query[0])] + "\"" + query[1] + operand)) this.queryMask[query.join(" ")].push(this.records-1);
+        const record = arguments[0].map( (value, index) => value ? value : this.defaultValues[index]);
+        for (const [key, value] of Object.entries(this.queries)) {
+            const [field, operator, queryValue] = value.query;
+            const operand = queryValue && !isNaN(queryValue) ? Number(queryValue) : "\"" + queryValue + "\"";
+            if (eval("\"" + record[this.fields.indexOf(field)] + "\"" + operator + operand)) this.queries[key].rows.push(this.records-1);
         }
     }
     delete(index) {
         if (super.delete(index)) return "index out of range";
-        for (const query of this.queries) {
-            const key = query.join(" ");
-            const indexOfRecord = this.queryMask[key].indexOf(index); // index in query list of records of provided index
-            this.queryMask[key] = this.queryMask[key].map( value => value > index ? value-1 : value ); // decrement index of rows after removed row
-            if (indexOfRecord+1) this.queryMask[key].splice(indexOfRecord, 1); // remove index (record) from query list of records
+        for (const [key, value] of Object.entries(this.queries)) {
+            const indexOfRecord = value.rows.indexOf(index);
+            if (indexOfRecord+1) { // +1 for indexOfRecord 0
+                this.queries[key].rows = this.queries[key].rows.map( value => value > index ? value-1 : value ); // decrement index of rows after removed row
+                this.queries[key].rows.splice(indexOfRecord, 1); // remove index (record) from query list of records
+            }
         }
     }
-    clearQuery () {
-        this.queries = [];
-        this.activeQuery = [];
-        this.queryMask = {};
-    }
-    addQuery (field, operator = "==", value) {
+    addQuery (field, operator = "==", value) { // add query
         const args = Array.from(arguments);
-        for (const query of this.queries) if (query.toString() == args.toString()) return true; // return if query already applied
+        const newQuery = args.join(" ");
+        for (const query of Object.keys(this.queries)) if (query == newQuery) return true; // return if repeated query
         const operand = value && !isNaN(value) ? Number(value) : "\"" + value + "\"";
-        this.queryMask[args.join(" ")] = [];
-        for (let i = 0; i < this.records; i++) if (eval("\""+ this.data[field][i] +"\"" + operator + operand)) this.queryMask[args.join(" ")].push(i);
-        this.queries.push(args);
-        this.activeQuery.push(true);
+        this.queries[newQuery] = {
+            query: args,
+            active: true,
+            rows: []
+        }
+        for (let i = 0; i < this.records; i++) if (eval("\""+ this.data[field][i] +"\"" + operator + operand)) this.queries[newQuery].rows.push(i);
     }
-    remQuery () {
-        // remove query
+    remQuery (query) { // remove query
+        delete this.queries[query];
+    }
+    queried () { // return list of indicies for queried records
+        const keys = [];
+        for (const [key, value] of Object.entries(this.queries)) if (value.active) keys.push(key);
+        if (!keys.length) return Array.from(Array(this.records).keys()); // return all indicies if no queries or non applied
+        let result = this.queries[keys.shift()].rows, temp = [];
+        for (const key of keys) {
+            for (const row of this.queries[key].rows) if (result.includes(row)) temp.push(row);
+            result = temp;
+            temp = [];
+        }
+        return result
     }
     htmlTable() {
-        if (!Object.keys(this.data).length) return ""; // return if no table data
+        if (!Object.keys(this.data).length) return "";
         const arr2d = [];
         let tableHTML = "<table><tr>";
         for (const field of this.fields) {
@@ -106,11 +112,7 @@ class queryTable extends table { // implement queries for table
             tableHTML += "<th>" + field + "</th>"
         }
         const transpose = arr2d[0].map((_, rowIndex) => arr2d.map(column => column[rowIndex]));
-        // get indicies of records filtered by queries
-        const active = this.activeQuery.reduce( (total, value, index) => value ? [...total, this.queryMask[this.queries[index].join(" ")]] : total, [] ) // get active queries
-            .reduce( (total1, value1) => total1.reduce( (total2, value2) => value1.includes(value2) ? [...total2, value2] : total2, [] ), 
-                Array.from(Array(this.records).keys())); // reduce list of record indicies for each query into a single list
-        for (const row of active) {
+        for (const row of this.queried()) {
             tableHTML += "</tr><tr>";
             for (const value of transpose[row]) tableHTML += "<td>" + value + "</td>";
         }
