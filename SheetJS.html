@@ -1,0 +1,201 @@
+<!-- Simple format previewer for spreadsheets using SheetJS -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title> SheetJS </title>
+    <meta charset="utf-8">
+    <style>
+        /* html table elements */
+        table, td {
+            border: 1px solid;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        #htmlout{
+            width: 100%;
+            padding: 10px;
+            vertical-align: top;
+            text-align: left;
+        }
+        /* toggle between json and csv */
+        .toggle {
+            display: inline-block;
+            background-color: #ccc;
+            border-radius: 5px;
+            padding: 5px;
+            margin: 5px;
+        }
+        .option {
+            display: inline-block;
+            border-radius: 5px;
+            padding-top: 2px;
+            padding-bottom: 2px;
+            padding-left: 5px;
+            padding-right: 5px;
+            width: 40px;
+            text-align: center;
+        }
+        .json {
+            background-color: #fff;
+        }
+        input:checked + .toggle {
+            .json { background-color: #ccc; }
+            .csv { background-color: #fff; }
+        }
+        .unselectable {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        /* drag and drop */
+        #drop-zone{
+            display: flex;
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            width: 100vw;
+            height: 100vh;
+            background: #fff;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            z-index: -1;
+        }
+        #drop-zone p, #drop-zone svg { pointer-events: none }
+        #drop-zone svg { margin-right: 5px }
+    </style>
+    <script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <form>
+        <!-- select excel sheet -->
+        <label for="file">Select File</label><br>
+        <input type="file" id="file"><br/>
+        <!-- drop down selection for excel sheets -->
+        <div id="ws-select" style="display: none">
+            <label for="page">Select Sheet</label><br>
+            <select id="page"></select>
+        </div>
+        <!-- toggle for table format (json or csv) -->
+        <label>
+            <input type="checkbox" style="display: none" onclick="changeFormat()">
+            <div class="toggle unselectable">
+                <div class="option json">JSON</div>
+                <div class="option csv">CSV</div>
+            </div>
+        </label><br>
+        <!-- output table in json/csv and html -->
+        <div style="display: table;">
+            <textarea id="result" style="display:table-cell;" cols="40" rows="20" readonly></textarea>
+            <div id="htmlout" style="display:table-cell;"><i>[HTML Table]</i></div>
+        </div>
+    </form>
+    <!-- drag and drop area for files -->
+    <div id="drop-zone">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <path d="M17 13h-10v-1h10v1zm0-4h-10v1h10v-1zm0-3h-10v1h10v-1zm-15-1v-5h6v2h-4v3h-2zm8-5v2h4v-2h-4zm6 2h4v3h2v-5h-6v2zm6 5h-2v4h2v-4zm-20 10h2v-4h-2v4zm18-4v.543c0 4.107-6 2.457-6 2.457s1.518 6-2.638 6h-1.362v2h2.189c3.163 0 9.811-7.223 9.811-9.614v-1.386h-2zm-18-2h2v-4h-2v4zm2 11v-3h-2v5h6v-2h-4z"/>
+        </svg>
+        <p>Drop a spreadsheet file here to see sheet data</p>
+    </div>
+    <script>
+        const accept = [".xls", ".xlsx", ".csv"]; // accepted file formats
+        const file = document.querySelector("#file");
+        file.setAttribute("accept", accept.toString());
+        const wsSelect = document.querySelector("#ws-select");
+        const page = document.querySelector("#page");
+        const result = document.querySelector("#result");
+        const htmlout = document.querySelector("#htmlout");
+        const dropZone = document.querySelector('#drop-zone');
+        let workbook, files, format = false;
+
+        function to_csv() { // return csv of worksheet
+            let csv = XLSX.utils.sheet_to_csv(workbook.Sheets[page.value], { blankrows: false });
+            // remove blank columns
+            let arr2d = csv.split("\n").map( value => value.split(",") );
+            const transpose = arr2d[0].map( (_, colIndex) => arr2d.map(row => row[colIndex]) );
+            const columns = transpose.map( value => value.join("") );
+            const blanks = columns.reduce( (total, value, index) => value ? total : [...total, index], [] );
+            if (blanks) blanks.reverse().forEach( value => arr2d.forEach( (_, index) => arr2d[index].splice(value, 1) ) );
+            csv = arr2d.map( row => row.join(",") ).join("\n");
+            return "Sheet: " + page.value + "\n" + csv;
+        }
+
+        function to_json() { // return json of worksheet
+            const jsonObj = {}, properties = { blankrows: false, defval: null };
+            if (!workbook.Sheets[page.value]["!autofilter"]) { // if no filter applied to table
+                const range = XLSX.utils.decode_range(workbook.Sheets[page.value]['!ref']); // get dimensions of table
+                properties.header = Array.from(Array(range.e.c - range.s.c + 1).keys()); // set headers as column indicies
+            }
+            jsonObj[page.value] = XLSX.utils.sheet_to_json(workbook.Sheets[page.value], properties);
+            return JSON.stringify(jsonObj, null, 2);
+        }
+
+        function updateResult() { result.value = format ? to_csv() : to_json() }
+        
+        function update() { // update format preview and html table
+            updateResult();
+            htmlout.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[page.value]);
+        }
+
+        function handleFile (eventFiles) { // handle new file selected
+            files = eventFiles;
+            eventFiles[0].arrayBuffer().then((buffer) => {
+                workbook = XLSX.read(buffer); // excel workbook
+                // workbook.SheetNames - array of sheet names in workbook
+                // workbook.Sheets - object of sheets in workbook with sheet name as attribute and sheet as value
+                const forSelect = workbook.SheetNames.reduce( (total, sheetName) => { 
+                    if (!XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]).length) return total; // do not add sheet if blank
+                    return total + `<option value="${sheetName}">${sheetName}</option>`; // add sheet name as select option
+                }, "" );
+                wsSelect.style.display = workbook.SheetNames.length > 1 ? "block" : "none"; // display only if more than one sheet
+                page.innerHTML = forSelect; // populate <Select> element with workbook sheet names as options
+                update();
+            });
+        }
+
+        file.addEventListener("change", function(e) { // keep previous file if no new file selected
+            if (file.files.length) handleFile(e.target.files)
+            else file.files = files
+        });
+        page.addEventListener("change", update);
+
+        function changeFormat() { // toggle for json (false) or csv (true)
+            format = !format;
+            if (file.files.length) updateResult();
+        }
+
+        (function() {
+            function handleDrop(e) {
+                dropZoneDisplay(e, false);
+                const eventFiles = e.dataTransfer.files;
+                if (eventFiles.length > 1) { alert("Select only one file"); return; } // return if more than one file
+                if (!accept.reduce( (total, fileType) => total || eventFiles[0].name.endsWith(fileType), false )) { alert("Not an accepted file format"); return; } // only accept file format defined in accept[]
+                file.files = eventFiles;
+                handleFile(eventFiles);
+            }
+        
+            function handleDragover(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            }
+        
+            function dropZoneDisplay(e, show) {
+                e.stopPropagation();
+                e.preventDefault();
+                dropZone.style.opacity = show ? '0.8' : '0';
+                dropZone.style.zIndex = show ? '1' : '-1';
+            }
+        
+            window.addEventListener('drop', handleDrop)
+            window.addEventListener('dragover', handleDragover)
+            window.addEventListener('dragenter', function(e) { dropZoneDisplay(e, true) });
+            dropZone.addEventListener('dragleave', function(e) { dropZoneDisplay(e, false) });
+        })();
+    </script>
+</body>
+</html>
